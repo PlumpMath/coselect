@@ -28,18 +28,22 @@ struct data_t {
     fd_set *exceptfds;
     struct timeval *timeout;
 
-    pull_handle_t *new_handle;
+    function_t new_routine;
 
     data_t(int n, fd_set *r, fd_set *w, fd_set *e,
             struct timeval *t) :
             nfds(n), readfds(r), writefds(w), exceptfds(e),
-            timeout(t), new_handle(nullptr) {}
+            timeout(t), new_routine() {}
 
-    data_t(pull_handle_t *p) :
+    data_t(std::function<void(handle_t&)> &&funct) :
             nfds(0), readfds(nullptr), writefds(nullptr),
             exceptfds(nullptr), timeout(nullptr),
-            new_handle(p) {}
+            new_routine(move(funct)) {}
 };
+
+function_t next_routine(pull_handle_t &h) {
+    return ((data_t) h.get()).new_routine;
+}
 
 struct data2_t {
     int nfds;
@@ -74,15 +78,21 @@ int select(handle_t &handle, int nfds, fd_set *readfds,
     return ::select(nfds, readfds, writefds, exceptfds, &zero);
 }
 
-void add_handle(handle_t& handle, pull_handle_t&& new_handle) {
-    data_t data(&new_handle);
+void add_routine(handle_t &handle, function_t &&new_routine) {
+    data_t data(std::move(new_routine));
     handle(data);
 }
 
 void select_loop(std::list<pull_handle_t> &&handle_list) {
-    // TODO respect new handle
     // TODO respect timeout
     while(true) {
+        for_each(handle_list.begin(), handle_list.end(),
+                [&handle_list](pull_handle_t &h) {
+                    while(h && next_routine(h)) {
+                        handle_list.emplace_back(next_routine(h));
+                        h();
+                    }
+                });
         handle_list.remove_if(
                 [](const pull_handle_t &h){
                     return !h;

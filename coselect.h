@@ -29,13 +29,14 @@ struct data_t;
 using coro_t = boost::coroutines2::coroutine<
         std::reference_wrapper<data_t>>;
 using handle_t = coro_t::push_type;
+using function_t = std::function<void(handle_t&)>;
 using pull_handle_t = coro_t::pull_type;
 
 int select(handle_t &handle, int nfds, fd_set *readfds,
         fd_set *writefds, fd_set *exceptfds,
         struct timeval *timeout);
 
-void add_handle(handle_t& handle, pull_handle_t&& new_handle);
+void add_routine(handle_t& handle, function_t &&new_routine);
 
 void select_loop(std::list<pull_handle_t> &&handles);
 
