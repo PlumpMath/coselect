@@ -15,6 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef COSELECT_H
+#define COSELECT_H
 #include <boost/coroutine2/coroutine.hpp>
 #include <sys/select.h>
 #include <list>
@@ -38,4 +40,4 @@ void add_handle(handle_t& handle, pull_handle_t&& new_handle);
 void select_loop(std::list<pull_handle_t> &&handles);
 
 }
-
+#endif // COSELECT_H
